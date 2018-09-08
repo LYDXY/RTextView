@@ -6,12 +6,16 @@ import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Build;
+import android.support.v7.content.res.AppCompatResources;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.TypedValue;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 import android.widget.TextView;
@@ -90,6 +94,17 @@ public class RTextView extends TextView {
      */
     private int mTouchSlop;
     private Context mContext;
+    private GestureDetector mGestureDetector;
+
+    /**
+     * 是否设置对应的属性
+     */
+    private boolean mHasPressedBgColor = false;
+    private boolean mHasUnableBgColor = false;
+    private boolean mHasPressedBorderColor = false;
+    private boolean mHasUnableBorderColor = false;
+    private boolean mHasPressedBorderWidth = false;
+    private boolean mHasUnableBorderWidth = false;
 
     public RTextView(Context context) {
         this(context, null);
@@ -99,6 +114,7 @@ public class RTextView extends TextView {
         super(context, attrs);
         mContext = context;
         mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
+        mGestureDetector = new GestureDetector(context, new SimpleOnGesture());
         initAttributeSet(context, attrs);
     }
 
@@ -120,19 +136,10 @@ public class RTextView extends TextView {
 
     @Override
     public boolean onTouchEvent(final MotionEvent event) {
+        if (!isEnabled()) return true;
+        mGestureDetector.onTouchEvent(event);
         int action = event.getAction();
         switch (action) {
-            case MotionEvent.ACTION_DOWN://按下
-                postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (mIconPressed != null) {
-                            mIcon = mIconPressed;
-                            setIcon();
-                        }
-                    }
-                }, ViewConfiguration.getTapTimeout());
-                break;
             case MotionEvent.ACTION_UP://抬起
                 if (mIconNormal != null) {
                     mIcon = mIconNormal;
@@ -187,9 +194,23 @@ public class RTextView extends TextView {
         mBorderColorPressed = a.getColor(R.styleable.RTextView_border_color_pressed, Color.TRANSPARENT);
         mBorderColorUnable = a.getColor(R.styleable.RTextView_border_color_unable, Color.TRANSPARENT);
         //icon
-        mIconNormal = a.getDrawable(R.styleable.RTextView_icon_src_normal);
-        mIconPressed = a.getDrawable(R.styleable.RTextView_icon_src_pressed);
-        mIconUnable = a.getDrawable(R.styleable.RTextView_icon_src_unable);
+        //Vector兼容处理
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mIconNormal = a.getDrawable(R.styleable.RTextView_icon_src_normal);
+            mIconPressed = a.getDrawable(R.styleable.RTextView_icon_src_pressed);
+            mIconUnable = a.getDrawable(R.styleable.RTextView_icon_src_unable);
+        } else {
+            int normalId = a.getResourceId(R.styleable.RTextView_icon_src_normal, -1);
+            int pressedId = a.getResourceId(R.styleable.RTextView_icon_src_pressed, -1);
+            int unableId = a.getResourceId(R.styleable.RTextView_icon_src_unable, -1);
+
+            if (normalId != -1)
+                mIconNormal = AppCompatResources.getDrawable(context, normalId);
+            if (pressedId != -1)
+                mIconPressed = AppCompatResources.getDrawable(context, pressedId);
+            if (unableId != -1)
+                mIconUnable = AppCompatResources.getDrawable(context, unableId);
+        }
         mIconWidth = a.getDimensionPixelSize(R.styleable.RTextView_icon_width, 0);
         mIconHeight = a.getDimensionPixelSize(R.styleable.RTextView_icon_height, 0);
         mIconDirection = a.getInt(R.styleable.RTextView_icon_direction, ICON_DIR_LEFT);
@@ -205,6 +226,13 @@ public class RTextView extends TextView {
         mTypefacePath = a.getString(R.styleable.RTextView_text_typeface);
 
         a.recycle();
+
+        mHasPressedBgColor = mBackgroundColorPressed != 0;
+        mHasUnableBgColor = mBackgroundColorUnable != 0;
+        mHasPressedBorderColor = mBorderColorPressed != 0;
+        mHasUnableBorderColor = mBorderColorUnable != 0;
+        mHasPressedBorderWidth = mBorderWidthPressed != 0;
+        mHasUnableBorderWidth = mBorderWidthUnable != 0;
 
         //setup
         setup();
@@ -230,10 +258,10 @@ public class RTextView extends TextView {
         /**
          * 设置背景默认值
          */
-        if (mBackgroundColorPressed == 0) {
+        if (!mHasPressedBgColor) {
             mBackgroundColorPressed = mBackgroundColorNormal;
         }
-        if (mBackgroundColorUnable == 0) {
+        if (!mHasUnableBgColor) {
             mBackgroundColorUnable = mBackgroundColorNormal;
         }
 
@@ -251,6 +279,9 @@ public class RTextView extends TextView {
         mStateBackground.addState(states[3], mBackgroundUnable);
         mStateBackground.addState(states[2], mBackgroundNormal);
 
+        /**
+         * icon
+         */
         if (isEnabled() == false) {
             mIcon = mIconUnable;
         } else {
@@ -260,26 +291,28 @@ public class RTextView extends TextView {
         /**
          * 设置边框默认值
          */
-        if (mBorderWidthPressed == 0) {
+        if (!mHasPressedBorderWidth) {
             mBorderWidthPressed = mBorderWidthNormal;
         }
-        if (mBorderWidthUnable == 0) {
+        if (!mHasUnableBorderWidth) {
             mBorderWidthUnable = mBorderWidthNormal;
         }
-        if (mBorderColorPressed == 0) {
+        if (!mHasPressedBorderColor) {
             mBorderColorPressed = mBorderColorNormal;
         }
-        if (mBorderColorUnable == 0) {
+        if (!mHasUnableBorderColor) {
             mBorderColorUnable = mBorderColorNormal;
         }
 
         if (mBackgroundColorNormal == 0 && mBackgroundColorUnable == 0 && mBackgroundColorPressed == 0) {//未设置自定义背景色
-            if (mBorderColorPressed == 0 && mBorderColorUnable == 0 && mBorderColorNormal == 0) {//未设置自定义边框
+           /* if (mBorderColorPressed == 0 && mBorderColorUnable == 0 && mBorderColorNormal == 0) {//未设置自定义边框
                 //获取原生背景并设置
                 setBackgroundState(true);
             } else {
                 setBackgroundState(false);
-            }
+            }*/
+            //获取原生背景并设置
+            setBackgroundState(true);
         } else {
             //设置背景资源
             setBackgroundState(false);
@@ -329,6 +362,8 @@ public class RTextView extends TextView {
         mBackgroundColorNormal = normal;
         mBackgroundColorPressed = pressed;
         mBackgroundColorUnable = unable;
+        mHasPressedBgColor = true;
+        mHasUnableBgColor = true;
         mBackgroundNormal.setColor(mBackgroundColorNormal);
         mBackgroundPressed.setColor(mBackgroundColorPressed);
         mBackgroundUnable.setColor(mBackgroundColorUnable);
@@ -345,11 +380,11 @@ public class RTextView extends TextView {
         /**
          * 设置背景默认值
          */
-        if (mBackgroundColorPressed == 0) {
+        if (!mHasPressedBgColor) {
             mBackgroundColorPressed = mBackgroundColorNormal;
             mBackgroundPressed.setColor(mBackgroundColorPressed);
         }
-        if (mBackgroundColorUnable == 0) {
+        if (!mHasUnableBgColor) {
             mBackgroundColorUnable = mBackgroundColorNormal;
             mBackgroundUnable.setColor(mBackgroundColorUnable);
         }
@@ -364,6 +399,7 @@ public class RTextView extends TextView {
 
     public RTextView setBackgroundColorPressed(int colorPressed) {
         this.mBackgroundColorPressed = colorPressed;
+        this.mHasPressedBgColor = true;
         mBackgroundPressed.setColor(mBackgroundColorPressed);
         setBackgroundState(false);
         return this;
@@ -375,17 +411,26 @@ public class RTextView extends TextView {
 
     public RTextView setBackgroundColorUnable(int colorUnable) {
         this.mBackgroundColorUnable = colorUnable;
+        this.mHasUnableBgColor = true;
         mBackgroundUnable.setColor(mBackgroundColorUnable);
         setBackgroundState(false);
         return this;
     }
 
     private void setBackgroundState(boolean unset) {
+
+        //未设置自定义属性,并且设置背景颜色时
+        Drawable drawable = getBackground();
+        if (unset && drawable instanceof ColorDrawable) {
+            int color = ((ColorDrawable) drawable).getColor();
+            setStateBackgroundColor(color, color, color);//获取背景颜色值设置 StateListDrawable
+        }
+
         //设置背景资源
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
-            setBackgroundDrawable(unset ? getBackground() : mStateBackground);
+            setBackgroundDrawable(unset ? drawable : mStateBackground);
         } else {
-            setBackground(unset ? getBackground() : mStateBackground);
+            setBackground(unset ? drawable : mStateBackground);
         }
     }
 
@@ -487,6 +532,13 @@ public class RTextView extends TextView {
     }
 
     private void setIcon() {
+        //未设置图片大小
+        if (mIconHeight == 0 && mIconWidth == 0) {
+            if (mIcon != null) {
+                mIconWidth = mIcon.getIntrinsicWidth();
+                mIconHeight = mIcon.getIntrinsicHeight();
+            }
+        }
         setIcon(mIcon, mIconWidth, mIconHeight, mIconDirection);
     }
 
@@ -571,11 +623,11 @@ public class RTextView extends TextView {
 
     public RTextView setBorderWidthNormal(int width) {
         this.mBorderWidthNormal = width;
-        if (mBorderWidthPressed == 0) {
+        if (!mHasPressedBorderWidth) {
             mBorderWidthPressed = mBorderWidthNormal;
             setBorderPressed();
         }
-        if (mBorderWidthUnable == 0) {
+        if (!mHasUnableBorderWidth) {
             mBorderWidthUnable = mBorderWidthNormal;
             setBorderUnable();
         }
@@ -589,11 +641,11 @@ public class RTextView extends TextView {
 
     public RTextView setBorderColorNormal(int color) {
         this.mBorderColorNormal = color;
-        if (mBorderColorPressed == 0) {
+        if (!mHasPressedBorderColor) {
             mBorderColorPressed = mBorderColorNormal;
             setBorderPressed();
         }
-        if (mBorderColorUnable == 0) {
+        if (!mHasUnableBorderColor) {
             mBorderColorUnable = mBorderColorNormal;
             setBorderUnable();
         }
@@ -607,6 +659,7 @@ public class RTextView extends TextView {
 
     public RTextView setBorderWidthPressed(int width) {
         this.mBorderWidthPressed = width;
+        this.mHasPressedBorderWidth = true;
         setBorderPressed();
         return this;
     }
@@ -617,6 +670,7 @@ public class RTextView extends TextView {
 
     public RTextView setBorderColorPressed(int color) {
         this.mBorderColorPressed = color;
+        this.mHasPressedBorderColor = true;
         setBorderPressed();
         return this;
     }
@@ -627,6 +681,7 @@ public class RTextView extends TextView {
 
     public RTextView setBorderWidthUnable(int width) {
         this.mBorderWidthUnable = width;
+        this.mHasUnableBorderWidth = true;
         setBorderUnable();
         return this;
     }
@@ -637,6 +692,7 @@ public class RTextView extends TextView {
 
     public RTextView setBorderColorUnable(int color) {
         this.mBorderColorUnable = color;
+        this.mHasUnableBorderColor = true;
         setBorderUnable();
         return this;
     }
@@ -649,6 +705,8 @@ public class RTextView extends TextView {
         this.mBorderWidthNormal = normal;
         this.mBorderWidthPressed = pressed;
         this.mBorderWidthUnable = unable;
+        this.mHasPressedBorderWidth = true;
+        this.mHasUnableBorderWidth = true;
         setBorder();
     }
 
@@ -656,6 +714,8 @@ public class RTextView extends TextView {
         this.mBorderColorNormal = normal;
         this.mBorderColorPressed = pressed;
         this.mBorderColorUnable = unable;
+        this.mHasPressedBorderColor = true;
+        this.mHasUnableBorderColor = true;
         setBorder();
     }
 
@@ -804,6 +864,32 @@ public class RTextView extends TextView {
             mBorderRadii[7] = mCornerRadiusBottomLeft;
             setRadiusRadii();
             return;
+        }
+    }
+
+    private float dp2px(int dp) {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
+    }
+
+    /**
+     * 手势处理
+     */
+    class SimpleOnGesture extends GestureDetector.SimpleOnGestureListener {
+        @Override
+        public void onShowPress(MotionEvent e) {
+            if (mIconPressed != null) {
+                mIcon = mIconPressed;
+                setIcon();
+            }
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            if (mIconNormal != null) {
+                mIcon = mIconNormal;
+                setIcon();
+            }
+            return false;
         }
     }
 

@@ -3,6 +3,8 @@
 
 ## 欢迎使用 RTextView 
 
+## 强势上线升级版，针对安卓基础控件的封装 [RWidgetHelper](https://github.com/RuffianZhong/RWidgetHelper) 
+
 ### 1.特点
 
 > 1. RTextView 让你从此不再编写和管理大量 selector 文件（这个太可恨了）
@@ -67,7 +69,7 @@
 ### 4.使用
 > ### 4.1  Gradle （版本号根据更新历史使用最新版）
 
-    compile 'com.ruffian.library:RTextView:1.0.3'
+    compile 'com.ruffian.library:RTextView:1.0.11'
 
 > ### 4.2 XML使用
 
@@ -145,10 +147,50 @@
 
 ### 5.版本历史
 
+**v1.0.11**　`2018.08.20`　优化 `onTouchEvent` 方法
+
+**v1.0.10**　`2018.06.20`　修改BUG [issues #9](https://github.com/RuffianZhong/RTextView/issues/9)
+
+**v1.0.9**　`2018.04.13`　修复原生属性 `background` 为纯颜色时没效果bug
+
+**v1.0.8**　`2018.04.09`　兼容5.0以下 `VectorDrawable` (矢量图)  [issues #8](https://github.com/RuffianZhong/RTextView/issues/8)
+
+**v1.0.7**　`2018.04.04`　未设置icon宽高时，默认使用icon大小
+
+**v1.0.6**　`2018.03.06`　修改BUG
+
+**v1.0.4 ~ v1.0.5**　`2018.02.26`　修改BUG
+
 **v1.0.2 ~ v1.0.3**　`2017.11.14`　修改BUG
 
-**v1.0.1**　`2017.10.26`　添加Typeface,完善代码
+**v1.0.1**　`2017.10.26`　添加 `Typeface`,完善代码
 
 **v1.0.0**　`2017.09.07`　发布第一版本
+
+## License
+
+```
+MIT License
+
+Copyright (c) 2018 Ruffian-痞子
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 
